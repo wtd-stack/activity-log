@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>71st Street Mini Storage — Daily Activity Log</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f3ee;
+    --surface: #ffffff;
+    --surface2: #f0ede6;
+    --border: #ddd9d0;
+    --text: #1a1a18;
+    --text2: #6b6860;
+    --text3: #9e9b94;
+    --accent: #1a3a2a;
+    --accent-light: #e8f0eb;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+    --call-in:   #1a4a6b; --call-in-bg:   #e8f2fa;
+    --call-out:  #2d5a1a; --call-out-bg:  #eaf2e6;
+    --movein:    #4a1a6b; --movein-bg:    #f2e8fa;
+    --moveout:   #6b3a1a; --moveout-bg:   #faf0e8;
+    --late:      #6b1a1a; --late-bg:      #fae8e8;
+    --text-msg:  #1a4a4a; --text-msg-bg:  #e8f5f5;
+    --walkin:    #4a4a1a; --walkin-bg:    #f5f5e8;
+    --payment:   #1a5a3a; --payment-bg:   #e8f5ee;
+    --other:     #4a4a4a; --other-bg:     #f0f0f0;
+  }
+
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* SETUP BANNER */
+  .setup-banner {
+    background: #fff3cd;
+    border-bottom: 2px solid #f0c000;
+    padding: 12px 32px;
+    font-size: 13px;
+    color: #7a5c00;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .setup-banner.hidden { display: none; }
+  .setup-banner strong { font-weight: 600; }
+  .setup-banner input {
+    flex: 1;
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 5px 8px;
+    border: 1px solid #c0a000;
+    border-radius: 4px;
+    background: #fff;
+    max-width: 520px;
+  }
+  .setup-banner button {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 14px;
+    background: #7a5c00;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  header {
+    background: var(--accent);
+    color: #fff;
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 3px solid #0d2418;
+  }
+  .header-left { display: flex; align-items: baseline; gap: 16px; }
+  .facility-name { font-family: var(--mono); font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.7; }
+  .log-title { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+  .sync-status { font-family: var(--mono); font-size: 12px; opacity: 0.7; display: flex; align-items: center; gap: 6px; }
+  .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #4caf50; }
+  .sync-dot.syncing { background: #ff9800; animation: pulse 1s infinite; }
+  .sync-dot.error { background: #f44336; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .main { max-width: 900px; margin: 0 auto; padding: 28px 24px 80px; }
+
+  .date-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+  .date-nav button {
+    background: var(--surface); border: 1px solid var(--border); color: var(--text2);
+    width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-size: 14px;
+    font-family: var(--mono); transition: all 0.15s; display: flex; align-items: center; justify-content: center;
+  }
+  .date-nav button:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .date-display { font-family: var(--mono); font-size: 20px; font-weight: 500; color: var(--text); letter-spacing: -0.01em; flex: 1; }
+  .today-btn {
+    font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.06em;
+    text-transform: uppercase; background: var(--accent-light); border: 1px solid #b8d4c0;
+    color: var(--accent); padding: 5px 12px; border-radius: 5px; cursor: pointer; transition: all 0.15s;
+  }
+  .today-btn:hover { background: var(--accent); color: #fff; }
+
+  .stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 24px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; text-align: center; }
+  .stat-num { font-family: var(--mono); font-size: 22px; font-weight: 500; color: var(--accent); }
+  .stat-label { font-size: 11px; color: var(--text3); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  .log-form { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 24px; }
+  .form-title { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); margin-bottom: 14px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .form-row-2 { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 10px; }
+
+  label { font-size: 11px; font-weight: 500; color: var(--text2); display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+  input[type="text"], input[type="time"], select, textarea {
+    width: 100%; font-family: var(--sans); font-size: 14px; color: var(--text);
+    background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 10px; outline: none; transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); background: #fff; }
+  textarea { resize: vertical; min-height: 72px; line-height: 1.5; }
+
+  .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+  .btn-clear {
+    font-family: var(--sans); font-size: 13px; font-weight: 500; padding: 9px 18px;
+    border-radius: 6px; border: 1px solid var(--border); background: transparent;
+    color: var(--text2); cursor: pointer; transition: all 0.15s;
+  }
+  .btn-clear:hover { background: var(--surface2); }
+  .btn-add {
+    font-family: var(--sans); font-size: 13px; font-weight: 600; padding: 9px 22px;
+    border-radius: 6px; border: none; background: var(--accent); color: #fff;
+    cursor: pointer; transition: all 0.15s; letter-spacing: 0.01em; min-width: 100px;
+  }
+  .btn-add:hover { background: #0f2218; }
+  .btn-add:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .entries-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .entries-label { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); }
+  .print-btn {
+    font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.06em;
+    text-transform: uppercase; background: transparent; border: 1px solid var(--border);
+    color: var(--text2); padding: 5px 12px; border-radius: 5px; cursor: pointer; transition: all 0.15s;
+  }
+  .print-btn:hover { background: var(--text); color: #fff; border-color: var(--text); }
+
+  .loading-state { text-align: center; padding: 40px; color: var(--text3); font-family: var(--mono); font-size: 13px; }
+  .empty-state {
+    background: var(--surface); border: 1px dashed var(--border); border-radius: 10px;
+    padding: 40px; text-align: center; color: var(--text3); font-size: 14px; font-family: var(--mono);
+  }
+
+  .entry {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px 18px; margin-bottom: 10px; display: grid;
+    grid-template-columns: auto auto 1fr auto; gap: 14px; align-items: start;
+    transition: box-shadow 0.15s;
+  }
+  .entry:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  .entry-time { font-family: var(--mono); font-size: 13px; color: var(--text2); white-space: nowrap; padding-top: 1px; }
+  .entry-badge {
+    font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.06em;
+    text-transform: uppercase; padding: 3px 8px; border-radius: 4px; white-space: nowrap; margin-top: 1px;
+  }
+  .entry-tenant { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .entry-unit { display: inline-block; font-family: var(--mono); font-size: 11px; color: var(--text3); margin-left: 6px; font-weight: 400; }
+  .entry-notes { font-size: 13px; color: var(--text2); line-height: 1.5; margin-top: 4px; white-space: pre-wrap; }
+  .entry-by { font-size: 11px; color: var(--text3); margin-top: 6px; font-family: var(--mono); }
+  .entry-delete {
+    background: none; border: none; color: var(--text3); cursor: pointer; font-size: 16px;
+    padding: 2px 4px; border-radius: 4px; transition: all 0.15s; line-height: 1;
+  }
+  .entry-delete:hover { background: #fee; color: #a33; }
+
+  .type-call-in  { background: var(--call-in-bg);  color: var(--call-in); }
+  .type-call-out { background: var(--call-out-bg); color: var(--call-out); }
+  .type-movein   { background: var(--movein-bg);   color: var(--movein); }
+  .type-moveout  { background: var(--moveout-bg);  color: var(--moveout); }
+  .type-late     { background: var(--late-bg);     color: var(--late); }
+  .type-text     { background: var(--text-msg-bg); color: var(--text-msg); }
+  .type-walkin   { background: var(--walkin-bg);   color: var(--walkin); }
+  .type-payment  { background: var(--payment-bg);  color: var(--payment); }
+  .type-other    { background: var(--other-bg);    color: var(--other); }
+
+  @media print {
+    .setup-banner, header, .date-nav, .stats-bar, .log-form, .entries-header button, .entry-delete { display: none !important; }
+    body { background: white; }
+    .main { padding: 0; max-width: 100%; }
+    .print-header { display: block !important; font-family: monospace; font-size: 14px; margin-bottom: 16px; }
+    .entry { break-inside: avoid; box-shadow: none; border: 1px solid #ccc; margin-bottom: 8px; }
+  }
+  .print-header { display: none; }
+
+  @media (max-width: 640px) {
+    .form-row { grid-template-columns: 1fr; }
+    .stats-bar { grid-template-columns: repeat(2,1fr); }
+    .entry { grid-template-columns: auto 1fr auto; }
+    .entry-time { grid-column: 1; }
+    .entry-badge { grid-column: 2; justify-self: start; }
+    .entry-body { grid-column: 1 / -1; }
+    .entry-delete { grid-column: 3; grid-row: 1; }
+    header { padding: 14px 16px; }
+    .setup-banner { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<div class="setup-banner" id="setupBanner">
+  <strong>Setup required:</strong> Paste your Google Apps Script URL here:
+  <input type="text" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/YOUR_ID/exec">
+  <button onclick="saveScriptUrl()">Save</button>
+</div>
+
+<header>
+  <div class="header-left">
+    <span class="facility-name">71st Street Mini Storage</span>
+    <span class="log-title">Daily Activity Log</span>
+  </div>
+  <div class="sync-status">
+    <div class="sync-dot" id="syncDot"></div>
+    <span id="syncLabel">Connected</span>
+  </div>
+</header>
+
+<div class="main">
+  <div class="print-header" id="printHeader"></div>
+
+  <div class="date-nav">
+    <button onclick="changeDay(-1)">&#8592;</button>
+    <div class="date-display" id="dateDisplay"></div>
+    <button onclick="changeDay(1)">&#8594;</button>
+    <button class="today-btn" onclick="goToday()">Today</button>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-num" id="s-total">—</div><div class="stat-label">Total Entries</div></div>
+    <div class="stat"><div class="stat-num" id="s-calls">—</div><div class="stat-label">Calls</div></div>
+    <div class="stat"><div class="stat-num" id="s-moves">—</div><div class="stat-label">Move-ins / Outs</div></div>
+    <div class="stat"><div class="stat-num" id="s-late">—</div><div class="stat-label">Late Notices</div></div>
+  </div>
+
+  <div class="log-form">
+    <div class="form-title">+ New Entry</div>
+    <div class="form-row">
+      <div>
+        <label>Time</label>
+        <input type="time" id="f-time">
+      </div>
+      <div>
+        <label>Activity Type</label>
+        <select id="f-type">
+          <option value="call-in">Inbound Call</option>
+          <option value="call-out">Outbound Call</option>
+          <option value="walkin">Walk-In</option>
+          <option value="text">Text Sent</option>
+          <option value="movein">Move-In</option>
+          <option value="moveout">Move-Out</option>
+          <option value="late">Late Notice</option>
+          <option value="payment">Payment Received</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div>
+        <label>Logged By</label>
+        <select id="f-by">
+          <option value="Mikayla">Mikayla</option>
+          <option value="Adam">Adam</option>
+          <option value="David">David</option>
+          <option value="Todd">Todd</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div>
+        <label>Tenant Name</label>
+        <input type="text" id="f-tenant" placeholder="Last, First or Company">
+      </div>
+      <div>
+        <label>Unit #</label>
+        <input type="text" id="f-unit" placeholder="e.g. 124">
+      </div>
+      <div>
+        <label>Phone # (optional)</label>
+        <input type="text" id="f-phone" placeholder="(918) 000-0000">
+      </div>
+    </div>
+    <div class="form-row-2">
+      <div>
+        <label>Notes / Details</label>
+        <textarea id="f-notes" placeholder="Describe the conversation, action taken, outcome, or any follow-up needed..."></textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-clear" onclick="clearForm()">Clear</button>
+      <button class="btn-add" id="addBtn" onclick="addEntry()">Log Entry</button>
+    </div>
+  </div>
+
+  <div class="entries-header">
+    <div class="entries-label" id="entriesLabel">Loading...</div>
+    <button class="print-btn" onclick="window.print()">Print / Save PDF</button>
+  </div>
+
+  <div id="entriesList"><div class="loading-state">Loading entries...</div></div>
+</div>
+
+<script>
+const TYPE_LABELS = {
+  'call-in':'Inbound Call','call-out':'Outbound Call','walkin':'Walk-In',
+  'text':'Text Sent','movein':'Move-In','moveout':'Move-Out',
+  'late':'Late Notice','payment':'Payment','other':'Other'
+};
+const DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+let currentDate = new Date();
+currentDate.setHours(0,0,0,0);
+let cachedEntries = [];
+let SCRIPT_URL = localStorage.getItem('ess_script_url') || '';
+
+// Show/hide setup banner
+function checkSetup() {
+  const banner = document.getElementById('setupBanner');
+  if (SCRIPT_URL) {
+    banner.classList.add('hidden');
+    document.getElementById('scriptUrlInput').value = SCRIPT_URL;
+  } else {
+    banner.classList.remove('hidden');
+  }
+}
+
+function saveScriptUrl() {
+  const val = document.getElementById('scriptUrlInput').value.trim();
+  if (!val.startsWith('https://script.google.com')) {
+    alert('That doesn\'t look like a Google Apps Script URL. Please check and try again.');
+    return;
+  }
+  SCRIPT_URL = val;
+  localStorage.setItem('ess_script_url', SCRIPT_URL);
+  document.getElementById('setupBanner').classList.add('hidden');
+  setSyncStatus('syncing', 'Connecting...');
+  loadEntries();
+}
+
+function setSyncStatus(state, label) {
+  const dot = document.getElementById('syncDot');
+  const lbl = document.getElementById('syncLabel');
+  dot.className = 'sync-dot' + (state !== 'ok' ? ' ' + state : '');
+  lbl.textContent = label;
+}
+
+function dateKey(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return y + '-' + m + '-' + day;
+}
+
+function formatDateDisplay(d) {
+  return DAYS[d.getDay()] + ', ' + MONTHS[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+}
+
+function formatTime12(t) {
+  if (!t) return '';
+  const parts = t.split(':');
+  const h = parseInt(parts[0]);
+  const m = parts[1];
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return h12 + ':' + m + ' ' + ampm;
+}
+
+function nowTime() {
+  const n = new Date();
+  return String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
+}
+
+async function loadEntries() {
+  if (!SCRIPT_URL) {
+    document.getElementById('entriesList').innerHTML = '<div class="empty-state">Paste your Apps Script URL in the banner above to get started.</div>';
+    document.getElementById('entriesLabel').textContent = 'Setup required';
+    return;
+  }
+
+  setSyncStatus('syncing', 'Loading...');
+  document.getElementById('entriesList').innerHTML = '<div class="loading-state">Loading entries...</div>';
+
+  try {
+    const res = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      redirect: 'follow',
+      body: JSON.stringify({ action: 'load', date: dateKey(currentDate) })
+    });
+    const data = await res.json();
+    cachedEntries = (data.entries || []).sort((a,b) => (a.Time||'').localeCompare(b.Time||''));
+    setSyncStatus('ok', 'Connected');
+    render();
+  } catch(err) {
+    setSyncStatus('error', 'Connection error');
+    document.getElementById('entriesList').innerHTML = '<div class="empty-state">Could not connect to Google Sheets.<br>Check your Apps Script URL and try again.</div>';
+    document.getElementById('entriesLabel').textContent = 'Connection error';
+  }
+}
+
+function render() {
+  const entries = cachedEntries;
+  const isToday = dateKey(currentDate) === dateKey(new Date());
+
+  document.getElementById('dateDisplay').textContent = formatDateDisplay(currentDate);
+  document.getElementById('printHeader').textContent = '71st Street Mini Storage — Daily Activity Log — ' + formatDateDisplay(currentDate);
+
+  const label = (isToday ? "Today" : formatDateDisplay(currentDate)) + ' — ' + entries.length + ' ' + (entries.length === 1 ? 'entry' : 'entries');
+  document.getElementById('entriesLabel').textContent = label;
+
+  const calls = entries.filter(e => e.Type === 'call-in' || e.Type === 'call-out').length;
+  const moves = entries.filter(e => e.Type === 'movein' || e.Type === 'moveout').length;
+  const late  = entries.filter(e => e.Type === 'late').length;
+  document.getElementById('s-total').textContent = entries.length;
+  document.getElementById('s-calls').textContent = calls;
+  document.getElementById('s-moves').textContent = moves;
+  document.getElementById('s-late').textContent  = late;
+
+  const list = document.getElementById('entriesList');
+  if (entries.length === 0) {
+    list.innerHTML = '<div class="empty-state">No entries for this day yet.<br>Use the form above to log the first entry.</div>';
+    return;
+  }
+
+  list.innerHTML = entries.map((e, i) => `
+    <div class="entry">
+      <div class="entry-time">${formatTime12(e.Time)}</div>
+      <div class="entry-badge type-${e.Type}">${TYPE_LABELS[e.Type] || e.Type}</div>
+      <div class="entry-body">
+        <div class="entry-tenant">
+          ${e.Tenant || '<span style="color:var(--text3);font-weight:400">No tenant name</span>'}
+          ${e.Unit ? '<span class="entry-unit">Unit ' + e.Unit + '</span>' : ''}
+          ${e.Phone ? '<span class="entry-unit">· ' + e.Phone + '</span>' : ''}
+        </div>
+        ${e.Notes ? '<div class="entry-notes">' + escHtml(e.Notes) + '</div>' : ''}
+        <div class="entry-by">Logged by ${e.LoggedBy}</div>
+      </div>
+      <button class="entry-delete" onclick="deleteEntry('${e.Timestamp}')" title="Delete entry">&#10005;</button>
+    </div>
+  `).join('');
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function addEntry() {
+  if (!SCRIPT_URL) { alert('Please add your Apps Script URL first.'); return; }
+
+  const notes  = document.getElementById('f-notes').value.trim();
+  const tenant = document.getElementById('f-tenant').value.trim();
+  if (!notes && !tenant) {
+    document.getElementById('f-notes').focus();
+    document.getElementById('f-notes').style.borderColor = '#c00';
+    setTimeout(() => document.getElementById('f-notes').style.borderColor = '', 1500);
+    return;
+  }
+
+  const btn = document.getElementById('addBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+  setSyncStatus('syncing', 'Saving...');
+
+  const entry = {
+    date:    dateKey(currentDate),
+    time:    document.getElementById('f-time').value,
+    type:    document.getElementById('f-type').value,
+    by:      document.getElementById('f-by').value,
+    tenant:  tenant,
+    unit:    document.getElementById('f-unit').value.trim(),
+    phone:   document.getElementById('f-phone').value.trim(),
+    ts:      String(Date.now()),
+    notes:   notes
+  };
+
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify(entry),
+      redirect: 'follow'
+    });
+    clearForm();
+    await loadEntries();
+  } catch(err) {
+    setSyncStatus('error', 'Save failed');
+    alert('Could not save entry. Check your internet connection and try again.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Log Entry';
+  }
+}
+
+async function deleteEntry(ts) {
+  if (!confirm('Delete this entry?')) return;
+  setSyncStatus('syncing', 'Deleting...');
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'delete', ts: ts }),
+      redirect: 'follow'
+    });
+    await loadEntries();
+  } catch(err) {
+    setSyncStatus('error', 'Delete failed');
+    alert('Could not delete entry. Try again.');
+  }
+}
+
+function clearForm() {
+  document.getElementById('f-tenant').value = '';
+  document.getElementById('f-unit').value = '';
+  document.getElementById('f-phone').value = '';
+  document.getElementById('f-notes').value = '';
+  document.getElementById('f-time').value = nowTime();
+}
+
+function changeDay(delta) {
+  currentDate = new Date(currentDate.getTime() + delta * 86400000);
+  loadEntries();
+}
+
+function goToday() {
+  currentDate = new Date();
+  currentDate.setHours(0,0,0,0);
+  loadEntries();
+}
+
+// Init
+document.getElementById('f-time').value = nowTime();
+checkSetup();
+loadEntries();
+</script>
+</body>
+</html>
